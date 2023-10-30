@@ -28,17 +28,29 @@ class CaptchaGenerator:
     cimage: captcha.image.ImageCaptcha
     caudio: captcha.audio.AudioCaptcha
 
+    def rawpng(self) -> bytes:
+        """return raw png"""
+
+        debug_log(f"generating png for {self.code!r}")
+        return self.cimage.generate(self.code, "png").read()
+
+    def rawwav(self) -> bytes:
+        """return raw wav"""
+
+        debug_log(f"generating wav for {self.code!r}")
+        return bytes(self.caudio.generate(self.code))
+
     def png(self) -> str:
         """return base64 encoded png of the image captcha"""
 
         debug_log(f"base64 encoding CAPTCHA's {self.code!r} PNG image")
-        return b64encode(self.cimage.generate(self.code, "png").read()).decode("ascii")
+        return b64encode(self.rawpng()).decode("ascii")
 
     def wav(self) -> str:
         """return base64 encoded wav of the audio captcha"""
 
         debug_log(f"base64 encoding CAPTCHA's {self.code!r} WAV audio")
-        return b64encode(self.caudio.generate(self.code)).decode("ascii")
+        return b64encode(self.rawwav()).decode("ascii")
 
     def image(self, alt: str = "Image CAPTCHA") -> str:
         """return image html"""
@@ -84,25 +96,34 @@ class IsHuman:
             warnings.warn("no `SECRET_KEY` set, session may be unavailable")
 
         if "CAPTCHA_SALT_LEN" not in app.config:
-            debug_log("setting `CAPTCHA_SALT_LEN` to `32`")
+            debug_log("setting `CAPTCHA_SALT_LEN` ( used for salting hashes ) to `32`")
             app.config["CAPTCHA_SALT_LEN"] = 32
 
         if "CAPTCHA_CHARSET" not in app.config:
-            debug_log(f"setting `CAPTCHA_CHARSET` to `{CHARSET}`")
+            debug_log(f"setting `CAPTCHA_CHARSET` ( charset of generated CAPTCHAs ) \
+to `{CHARSET}`")
             app.config["CAPTCHA_CHARSET"] = CHARSET
 
         if "CAPTCHA_RANGE" not in app.config:
-            debug_log("setting `CAPTCHA_RANGE` to `(4, 8)`")
+            debug_log("setting `CAPTCHA_RANGE` ( range is a (from, to) to use \
+in generating lengths of captchas ) to `(4, 8)`")
             app.config["CAPTCHA_RANGE"] = 4, 8
 
+        if "CAPTCHA_PEPPER_SIZE" not in app.config:
+            debug_log("setting `CAPTCHA_PEPPER_SIZE` to `2048` ( only affects \
+anything if `CAPTCHA_PEPPER_FILE` is being created )")
+            app.config["CAPTCHA_PEPPER_SIZE"] = 2048
+
         if "CAPTCHA_PEPPER_FILE" not in app.config:
-            debug_log("setting `CAPTCHA_PEPPER_FILE` to `captcha_pepper`")
+            debug_log("setting `CAPTCHA_PEPPER_FILE` to `captcha_pepper`, a file \
+called `captcha_pepper` might get created and read")
             app.config["CAPTCHA_PEPPER_FILE"] = "captcha_pepper"
 
         if not os.path.exists(app.config["CAPTCHA_PEPPER_FILE"]):
             with open(app.config["CAPTCHA_PEPPER_FILE"], "wb") as fp:
                 debug_log(
-                    f"wrote {fp.write(self.rand.randbytes(2048))} bytes to "
+                    f"wrote \
+{fp.write(self.rand.randbytes(app.config['CAPTCHA_PEPPER_SIZE']))} bytes to "
                     f"{fp.name!r} pepper file",
                 )
 
@@ -111,6 +132,7 @@ class IsHuman:
             debug_log(f"read {fp.tell()} bytes from {fp.name!r} pepper file")
 
         self.app = app
+
         debug_log("app initialized")
 
         return self
@@ -180,12 +202,14 @@ class IsHuman:
         self,
         code: t.Optional[str] = None,
         length: t.Optional[int] = None,
+        set_c: bool = True,
     ) -> CaptchaGenerator:
         """create a new captcha generator"""
 
         code = code or self.random(length)
 
-        self.set_captcha(code)
+        if set_c:
+            self.set_captcha(code)
 
         return CaptchaGenerator(
             code,
