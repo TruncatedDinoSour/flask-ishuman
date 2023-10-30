@@ -24,6 +24,8 @@ CHARSET: t.Final[str] = string.ascii_letters + string.digits + "@#%?"
 
 @dataclass
 class CaptchaGenerator:
+    """captcha generator and renderer"""
+
     code: str
     cimage: captcha.image.ImageCaptcha
     caudio: captcha.audio.AudioCaptcha
@@ -100,23 +102,31 @@ class IsHuman:
             app.config["CAPTCHA_SALT_LEN"] = 32
 
         if "CAPTCHA_CHARSET" not in app.config:
-            debug_log(f"setting `CAPTCHA_CHARSET` ( charset of generated CAPTCHAs ) \
-to `{CHARSET}`")
+            debug_log(
+                f"setting `CAPTCHA_CHARSET` ( charset of generated CAPTCHAs ) \
+to `{CHARSET}`"
+            )
             app.config["CAPTCHA_CHARSET"] = CHARSET
 
         if "CAPTCHA_RANGE" not in app.config:
-            debug_log("setting `CAPTCHA_RANGE` ( range is a (from, to) to use \
-in generating lengths of captchas ) to `(4, 8)`")
+            debug_log(
+                "setting `CAPTCHA_RANGE` ( range is a (from, to) to use \
+in generating lengths of captchas ) to `(4, 8)`"
+            )
             app.config["CAPTCHA_RANGE"] = 4, 8
 
         if "CAPTCHA_PEPPER_SIZE" not in app.config:
-            debug_log("setting `CAPTCHA_PEPPER_SIZE` to `2048` ( only affects \
-anything if `CAPTCHA_PEPPER_FILE` is being created )")
+            debug_log(
+                "setting `CAPTCHA_PEPPER_SIZE` to `2048` ( only affects \
+anything if `CAPTCHA_PEPPER_FILE` is being created )"
+            )
             app.config["CAPTCHA_PEPPER_SIZE"] = 2048
 
         if "CAPTCHA_PEPPER_FILE" not in app.config:
-            debug_log("setting `CAPTCHA_PEPPER_FILE` to `captcha_pepper`, a file \
-called `captcha_pepper` might get created and read")
+            debug_log(
+                "setting `CAPTCHA_PEPPER_FILE` to `captcha_pepper`, a file \
+called `captcha_pepper` might get created and read"
+            )
             app.config["CAPTCHA_PEPPER_FILE"] = "captcha_pepper"
 
         if not os.path.exists(app.config["CAPTCHA_PEPPER_FILE"]):
