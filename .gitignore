@@ -168,3 +168,5 @@ cython_debug/
 .pytest_cache/
 .tox/
 *.key
+
+captcha_pepper
