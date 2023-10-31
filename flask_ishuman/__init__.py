@@ -18,7 +18,7 @@ import captcha.audio
 import captcha.image
 from flask import Flask, session
 
-__version__: t.Final[str] = "2.0.0"
+__version__: t.Final[str] = "2.0.1"
 
 CHARSET: t.Final[str] = string.ascii_letters + string.digits + "@#%?"
 
@@ -34,13 +34,13 @@ class CaptchaGenerator:
     def rawpng(self) -> bytes:
         """return raw png"""
 
-        debug_log(f"generating png for {self.code!r}")
+        debug_log(f"generating PNG for {self.code!r}")
         return self.cimage.generate(self.code, "png").read()
 
     def rawwav(self) -> bytes:
         """return raw wav"""
 
-        debug_log(f"generating wav for {self.code!r}")
+        debug_log(f"generating WAV For {self.code!r}")
         return bytes(self.caudio.generate(self.code))
 
     def png(self) -> str:
@@ -58,14 +58,14 @@ class CaptchaGenerator:
     def image(self, alt: str = "Image CAPTCHA") -> str:
         """return image html"""
 
-        debug_log(f"generating image html for captcha {self.code!r}")
+        debug_log(f"generating image HTML for CAPTCHA {self.code!r}")
         return f'<img id=image-captcha src="data:image/png;base64,{self.png()}" \
 alt="{alt}" />'
 
     def audio(self, alt: str = "Audio CAPTCHA", controls: bool = True) -> str:
         """return audio html"""
 
-        debug_log(f"generating audio html for captcha {self.code!r}")
+        debug_log(f"generating audio HTML for CAPTCHA {self.code!r}")
         return f'<audio id=audio-captcha{" controls" if controls else ""}> \
 <source src="data:audio/wav;base64,{self.wav()}" type=audio/wav /> {alt} </audio>'
 
@@ -183,7 +183,7 @@ called `captcha_pepper` might get created and read"
         if self.pepper is None or self.app is None:
             raise ValueError("uninitialized app, try `init_app(app)`")
 
-        debug_log(f"digesting captcha {code!r}")
+        debug_log(f"digesting CAPTCHA {code!r}")
 
         salt = salt or self.rand.randbytes(self.app.config["CAPTCHA_SALT_LEN"])
 
@@ -205,7 +205,10 @@ called `captcha_pepper` might get created and read"
     def verify(self, code: t.Optional[str], expire: bool = True) -> bool:
         """returns `True` is captcha code is valid, else `False`"""
 
+        debug_log(f"verifying CAPTCHA {code!r}")
+
         if code is None:
+            debug_log("no code specified, ignoring")
             return False
 
         try:
@@ -218,8 +221,6 @@ called `captcha_pepper` might get created and read"
 
         if expire:
             self.expire()
-
-        debug_log(f"verifying captcha {code!r}")
 
         if self.auto_expire(d[2]):
             return False
@@ -273,7 +274,7 @@ called `captcha_pepper` might get created and read"
         returns result of expired_dt()"""
 
         if exp := self.expired_dt(ts):
-            debug_log("detected that captcha is expired, invalidating captcha")
+            debug_log("detected that CAPTCHA Is expired, invalidating it")
             self.expire()
 
         return exp

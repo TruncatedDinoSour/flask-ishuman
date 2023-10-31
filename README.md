@@ -100,6 +100,11 @@ these should be a part of `app.config`, although optional -- will use default va
 -   a short expiry time, but not so sort that users cant figure it out in time, maybe like 5 to 10 mins, keep in mind audio captchas if ur using them, audio captchas tend to take longer
 -   a big pepper size, maybe like from 512 to 4096 bytes
 
+## styling and selection
+
+-   image captchas get the `image-captcha` id ( `<img id=... />` )
+-   audio captchas get the `audio-captcha` id ( `<audio id=...><source /><audio>` )
+
 ## logging
 
 all logging of flask-ishuman is done through `logging.DEBUG`
