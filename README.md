@@ -1,6 +1,6 @@
 # flask-ishuman
 
-> simple flask app captcha validation
+> simple flask captcha validation
 
 # usage
 
@@ -97,7 +97,7 @@ these should be a part of `app.config`, although optional -- will use default va
 -   a salt length that is anywhere from 16 to 64 bytes, dont go overboard though as that will increase the size of the session
 -   charset of readable characters when messed with in a captcha sense
 -   a sensible range, so it isnt too large like 100 characters or too small like 1 characters
--   a short expiry time, but not so sort that users cant figure it out in time, maybe like 5 to 10 mins
+-   a short expiry time, but not so sort that users cant figure it out in time, maybe like 5 to 10 mins, keep in mind audio captchas if ur using them, audio captchas tend to take longer
 -   a big pepper size, maybe like from 512 to 4096 bytes
 
 ## logging

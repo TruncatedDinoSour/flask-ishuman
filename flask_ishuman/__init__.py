@@ -18,7 +18,7 @@ import captcha.audio
 import captcha.image
 from flask import Flask, session
 
-__version__: t.Final[str] = "1.0.0"
+__version__: t.Final[str] = "2.0.0"
 
 CHARSET: t.Final[str] = string.ascii_letters + string.digits + "@#%?"
 
