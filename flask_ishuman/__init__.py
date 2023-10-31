@@ -8,6 +8,7 @@ import typing as t
 import warnings
 from base64 import b64encode
 from dataclasses import dataclass
+from datetime import datetime
 from hashlib import sha3_512
 from logging import debug as debug_log
 from secrets import SystemRandom
@@ -73,6 +74,8 @@ alt="{alt}" />'
 class IsHuman:
     """captcha support in flask"""
 
+    _c: int = 0
+
     def __init__(
         self,
         image_args: t.Optional[t.Dict[str, t.Any]] = None,
@@ -86,10 +89,12 @@ class IsHuman:
         )
 
         self.rand: SystemRandom = SystemRandom()
-        self.skey: str = f"__captcha_{self.rand.random() * 1024}__"
+        self.skey: str = f"__captcha{self._c}__"
 
         self.app: t.Optional[Flask] = None
         self.pepper: t.Optional[bytes] = None
+
+        IsHuman._c += 1
 
     def init_app(self, app: Flask) -> "IsHuman":
         """initialize flask app"""
@@ -114,6 +119,13 @@ to `{CHARSET}`"
 in generating lengths of captchas ) to `(4, 8)`"
             )
             app.config["CAPTCHA_RANGE"] = 4, 8
+
+        if "CAPTCHA_EXPIRY" not in app.config:
+            debug_log(
+                "as `CAPTCHA_EXPIRY` is not set it will be set to `None`, \
+all captchas will have an infinite lifetime"
+            )
+            app.config["CAPTCHA_EXPIRY"] = None
 
         if "CAPTCHA_PEPPER_SIZE" not in app.config:
             debug_log(
@@ -147,25 +159,6 @@ called `captcha_pepper` might get created and read"
 
         return self
 
-    def digest(
-        self,
-        code: str,
-        salt: t.Optional[bytes] = None,
-    ) -> t.Tuple[bytes, bytes]:
-        """digest a `code`"""
-
-        if self.pepper is None or self.app is None:
-            raise ValueError("uninitialized app, try `init_app(app)`")
-
-        debug_log(f"digesting captcha {code!r}")
-
-        salt = salt or self.rand.randbytes(self.app.config["CAPTCHA_SALT_LEN"])
-
-        return (
-            salt,
-            sha3_512(salt + code.encode("ascii") + self.pepper).digest(),
-        )
-
     def random(self, length: t.Optional[int] = None) -> str:
         """returns a random code"""
 
@@ -179,12 +172,33 @@ called `captcha_pepper` might get created and read"
             ),
         )
 
+    def digest(
+        self,
+        code: str,
+        salt: t.Optional[bytes] = None,
+        ts: t.Optional[float] = None,
+    ) -> t.Tuple[bytes, bytes, float]:
+        """digest a `code`"""
+
+        if self.pepper is None or self.app is None:
+            raise ValueError("uninitialized app, try `init_app(app)`")
+
+        debug_log(f"digesting captcha {code!r}")
+
+        salt = salt or self.rand.randbytes(self.app.config["CAPTCHA_SALT_LEN"])
+
+        return (
+            sha3_512(salt + code.encode("ascii") + self.pepper).digest(),
+            salt,
+            ts or datetime.now().timestamp(),
+        )
+
     def set_code(self, code: str) -> "IsHuman":
         """set captcha to `code`"""
         session[self.skey] = self.digest(code)
         return self
 
-    def get_digest(self) -> t.Optional[t.Tuple[bytes, bytes]]:
+    def get_digest(self) -> t.Optional[t.Tuple[bytes, bytes, float]]:
         """get captcha"""
         return session.get(self.skey)
 
@@ -195,7 +209,7 @@ called `captcha_pepper` might get created and read"
             return False
 
         try:
-            d: t.Optional[t.Tuple[bytes, bytes]] = self.get_digest()
+            d: t.Optional[t.Tuple[bytes, bytes, float]] = self.get_digest()
         except ValueError:
             return False
 
@@ -207,7 +221,10 @@ called `captcha_pepper` might get created and read"
 
         debug_log(f"verifying captcha {code!r}")
 
-        return self.digest(code, d[0]) == d
+        if self.auto_expire(d[2]):
+            return False
+
+        return self.digest(code, d[1], d[2]) == d
 
     def new(
         self,
@@ -235,3 +252,28 @@ called `captcha_pepper` might get created and read"
             debug_log("expired the current CAPTCHA")
 
         return self
+
+    def expired_dt(self, ts: float) -> bool:
+        """return if the current captcha is expired based off delta time"""
+
+        if self.app is None:
+            raise ValueError("uninitialized app, try `init_app(app)`")
+
+        dt: float = datetime.now().timestamp() - ts
+        exp: t.Optional[float] = self.app.config["CAPTCHA_EXPIRY"]
+
+        if exp is None:
+            return False  # exp is None, so it will never expire
+
+        debug_log(f"checking delta time {dt} in (0; {exp})")
+        return dt < 0 or dt > exp
+
+    def auto_expire(self, ts: float) -> bool:
+        """auto-expire captcha if expired_dt() is true,
+        returns result of expired_dt()"""
+
+        if exp := self.expired_dt(ts):
+            debug_log("detected that captcha is expired, invalidating captcha")
+            self.expire()
+
+        return exp

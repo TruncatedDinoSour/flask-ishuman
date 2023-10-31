@@ -50,14 +50,15 @@ heres the functions and classes we have :
         -   `app` is the flask app ( can be `None` if `init_app()` was not called )
         -   `pepper` is the pepper of captchas ( also can b `None` if `init_app()` was not called )
     -   `init_app(app: flask.Flask) -> Self` -- initialize flask app, set up variables, configuration, generate keys
-    -   `digest(code: str, salt: bytes | None) -> (bytes, bytes)` -- returns a salted and peppered sha3-512 digest of a code, returns `(salt, digest)
-    -   `split_digest(s: bytes | None) -> (bytes, bytes)` -- splits a digest into a tuple of `(salt, digest)`, by default uses the current captcha
     -   `random(length: int | None) -> str` -- returns a random code of `length` length, uses a random number in `CAPTCHA_RANGE` length by default
+    -   `digest(code: str, salt: bytes | None) -> (bytes, bytes, float)` -- returns a salted and peppered sha3-512 digest of a code, returns `(digest, salt, timestamp)`
     -   `set_code(code: str) -> Self` -- sets the captcha to a code
-    -   `get_digest() -> (bytes, bytes) | None` -- returns the current captcha digest if available, returns `(salt, digest)_`
+    -   `get_digest() -> (bytes, bytes, float) | None` -- returns the current captcha digest if available, returns `(digest, salt, timestamp)`, returns `None` if unavailable or expired
     -   `verify(code: str | None, expire: bool = True) -> bool` -- returns if a code is a valid hash, if `code` is `None` will always return `False`, which helps to work with flask apis like `flask.request.from.get`, will also call `expire()` if `expire=True` ( default ) is passed
     -   `new(code: str | None, length: str | None, set_c: bool = True)` -- returns a new `CaptchaGenerator`, passes code as the code and uses `random(length)` by default, `set_code()` is called if `set_c` is `True`, which is the default
     -   `expire() -> Self` -- expire the current captcha
+    -   `expired_dt(ts: float) -> bool` -- check if the current captcha is expired according to its `ts` ( timestamp )
+    -   `auto_expire(ts: float) -> bool` -- runs `expire()` if `expired_dt()` is `True`, returns the result of `expired_dt()`
 -   `CaptchaGenerator` -- generate captchas
     -   `__init__(code: str, cimage: captcha.image.ImageCaptcha, caudio: captcha.audio.AudioCaptcha) -> None` -- constructor, takes in the captcha code and captcha helpers
         -   `code` is the captcha code
@@ -84,6 +85,7 @@ what u have to do is basically :
 -   `CAPTCHA_SALT_LEN` -- the salt length to use for salting of hashes, by default `32`
 -   `CAPTCHA_CHARSET` -- the charset to use in captchas, by default all ascii letters, digits and characters `@#%?`
 -   `CAPTCHA_RANGE` -- a 2 value tuple storing `(from, to)` arguments, used to generation of random captcha lengths, by default from 4 to 8 ( `(4, 8)` )
+-   `CAPTCHA_EXPIRY` -- a float, which defines the lifetime of a single captcha in seconds, by default it is `None` which means the lifetime is infinite
 -   `CAPTCHA_PEPPER_SIZE` -- the size of the pepper value, by default `2048`
 -   `CAPTCHA_PEPPER_FILE` -- the pepper file to use, which is like a constant salt not stored in the session, by default `captcha_pepper`
 
@@ -95,6 +97,7 @@ these should be a part of `app.config`, although optional -- will use default va
 -   a salt length that is anywhere from 16 to 64 bytes, dont go overboard though as that will increase the size of the session
 -   charset of readable characters when messed with in a captcha sense
 -   a sensible range, so it isnt too large like 100 characters or too small like 1 characters
+-   a short expiry time, but not so sort that users cant figure it out in time, maybe like 5 to 10 mins
 -   a big pepper size, maybe like from 512 to 4096 bytes
 
 ## logging

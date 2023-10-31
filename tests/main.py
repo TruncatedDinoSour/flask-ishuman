@@ -93,8 +93,11 @@ def main() -> int:
     logging.getLogger().setLevel(logging.DEBUG)
 
     app.config["SECRET_KEY"] = h.rand.randbytes(2048)
+
     app.config["SESSION_COOKIE_SAMESITE"] = "None"
     app.config["SESSION_COOKIE_SECURE"] = True
+
+    app.config["CAPTCHA_EXPIRY"] = 10
 
     h.init_app(app)
     app.run("127.0.0.1", 8080, True)
