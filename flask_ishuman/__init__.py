@@ -147,7 +147,11 @@ called `captcha_pepper` might get created and read"
 
         return self
 
-    def digest(self, code: str, salt: t.Optional[bytes] = None) -> bytes:
+    def digest(
+        self,
+        code: str,
+        salt: t.Optional[bytes] = None,
+    ) -> t.Tuple[bytes, bytes]:
         """digest a `code`"""
 
         if self.pepper is None or self.app is None:
@@ -156,22 +160,11 @@ called `captcha_pepper` might get created and read"
         debug_log(f"digesting captcha {code!r}")
 
         salt = salt or self.rand.randbytes(self.app.config["CAPTCHA_SALT_LEN"])
-        return salt + sha3_512(salt + code.encode("ascii") + self.pepper).digest()
 
-    def split_digest(self, s: t.Optional[bytes] = None) -> t.Tuple[bytes, bytes]:
-        """split digest into its salt and digest parts"""
-
-        if self.app is None:
-            raise ValueError("uninitialized app, try `init_app(app)`")
-
-        sl: int = self.app.config["CAPTCHA_SALT_LEN"]
-        s = s or self.get_digest()
-
-        if s is None:
-            raise ValueError("no digest")
-
-        debug_log(f"splitting {s!r} into salt and digest")
-        return s[:sl], s[sl:]
+        return (
+            salt,
+            sha3_512(salt + code.encode("ascii") + self.pepper).digest(),
+        )
 
     def random(self, length: t.Optional[int] = None) -> str:
         """returns a random code"""
@@ -191,7 +184,7 @@ called `captcha_pepper` might get created and read"
         session[self.skey] = self.digest(code)
         return self
 
-    def get_digest(self) -> t.Optional[bytes]:
+    def get_digest(self) -> t.Optional[t.Tuple[bytes, bytes]]:
         """get captcha"""
         return session.get(self.skey)
 
@@ -202,9 +195,11 @@ called `captcha_pepper` might get created and read"
             return False
 
         try:
-            d: t.Optional[bytes] = self.get_digest()
-            salt, _ = self.split_digest(d)
+            d: t.Optional[t.Tuple[bytes, bytes]] = self.get_digest()
         except ValueError:
+            return False
+
+        if d is None:
             return False
 
         if expire:
@@ -212,7 +207,7 @@ called `captcha_pepper` might get created and read"
 
         debug_log(f"verifying captcha {code!r}")
 
-        return self.digest(code, salt) == d
+        return self.digest(code, d[0]) == d
 
     def new(
         self,

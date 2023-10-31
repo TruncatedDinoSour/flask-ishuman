@@ -53,7 +53,7 @@ def audio() -> str:
 @app.route("/audio", methods=["POST"])
 @app.route("/image", methods=["POST"])
 def captcha_verify() -> str:
-    return f"{'' if h.verify_captcha(flask.request.form.get('code', '')) else 'in'}\
+    return f"{'' if h.verify(flask.request.form.get('code')) else 'in'}\
 valid captcha"
 
 

@@ -20,7 +20,9 @@ def index():
 
 @app.post("/")
 def validate():
-    code = flask.request.form.get("code", "")  # this if u have a <form> that has name=code in it, but ur free to get the `code` in any way u want
+    code = flask.request.form.get("code")  # this if u have a <form> that has name=code in it, but ur free to get the `code` in any way u want
+
+    # if code is None then itll return false regardless
 
     if h.verify(code):
         pass  # captcha valid
@@ -48,11 +50,11 @@ heres the functions and classes we have :
         -   `app` is the flask app ( can be `None` if `init_app()` was not called )
         -   `pepper` is the pepper of captchas ( also can b `None` if `init_app()` was not called )
     -   `init_app(app: flask.Flask) -> Self` -- initialize flask app, set up variables, configuration, generate keys
-    -   `digest(code: str, salt: bytes | None) -> bytes` -- returns a salted and peppered sha3-512 digest of a code
+    -   `digest(code: str, salt: bytes | None) -> (bytes, bytes)` -- returns a salted and peppered sha3-512 digest of a code, returns `(salt, digest)
     -   `split_digest(s: bytes | None) -> (bytes, bytes)` -- splits a digest into a tuple of `(salt, digest)`, by default uses the current captcha
     -   `random(length: int | None) -> str` -- returns a random code of `length` length, uses a random number in `CAPTCHA_RANGE` length by default
     -   `set_code(code: str) -> Self` -- sets the captcha to a code
-    -   `get_digest() -> bytes | None` -- returns the current captcha digest if available
+    -   `get_digest() -> (bytes, bytes) | None` -- returns the current captcha digest if available, returns `(salt, digest)_`
     -   `verify(code: str | None, expire: bool = True) -> bool` -- returns if a code is a valid hash, if `code` is `None` will always return `False`, which helps to work with flask apis like `flask.request.from.get`, will also call `expire()` if `expire=True` ( default ) is passed
     -   `new(code: str | None, length: str | None, set_c: bool = True)` -- returns a new `CaptchaGenerator`, passes code as the code and uses `random(length)` by default, `set_code()` is called if `set_c` is `True`, which is the default
     -   `expire() -> Self` -- expire the current captcha
