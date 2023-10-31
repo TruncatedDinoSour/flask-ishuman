@@ -165,7 +165,7 @@ called `captcha_pepper` might get created and read"
             raise ValueError("uninitialized app, try `init_app(app)`")
 
         sl: int = self.app.config["CAPTCHA_SALT_LEN"]
-        s = s or self.get_captcha()
+        s = s or self.get_digest()
 
         if s is None:
             raise ValueError("no digest")
@@ -186,23 +186,29 @@ called `captcha_pepper` might get created and read"
             ),
         )
 
-    def set_captcha(self, code: str) -> "IsHuman":
+    def set_code(self, code: str) -> "IsHuman":
         """set captcha to `code`"""
         session[self.skey] = self.digest(code)
         return self
 
-    def get_captcha(self) -> t.Optional[bytes]:
+    def get_digest(self) -> t.Optional[bytes]:
         """get captcha"""
         return session.get(self.skey)
 
-    def verify_captcha(self, code: str) -> bool:
+    def verify(self, code: t.Optional[str], expire: bool = True) -> bool:
         """returns `True` is captcha code is valid, else `False`"""
 
+        if code is None:
+            return False
+
         try:
-            d: t.Optional[bytes] = self.get_captcha()
+            d: t.Optional[bytes] = self.get_digest()
             salt, _ = self.split_digest(d)
         except ValueError:
             return False
+
+        if expire:
+            self.expire()
 
         debug_log(f"verifying captcha {code!r}")
 
@@ -219,10 +225,18 @@ called `captcha_pepper` might get created and read"
         code = code or self.random(length)
 
         if set_c:
-            self.set_captcha(code)
+            self.set_code(code)
 
         return CaptchaGenerator(
             code,
             self.cimage,
             self.caudio,
         )
+
+    def expire(self) -> "IsHuman":
+        """expire current captcha"""
+
+        if session.pop(self.skey, None) is not None:
+            debug_log("expired the current CAPTCHA")
+
+        return self

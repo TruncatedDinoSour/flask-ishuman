@@ -22,7 +22,7 @@ def index():
 def validate():
     code = flask.request.form.get("code", "")  # this if u have a <form> that has name=code in it, but ur free to get the `code` in any way u want
 
-    if h.verify_captcha(code):
+    if h.verify(code):
         pass  # captcha valid
     else:
         pass  # captcha invalid
@@ -51,10 +51,11 @@ heres the functions and classes we have :
     -   `digest(code: str, salt: bytes | None) -> bytes` -- returns a salted and peppered sha3-512 digest of a code
     -   `split_digest(s: bytes | None) -> (bytes, bytes)` -- splits a digest into a tuple of `(salt, digest)`, by default uses the current captcha
     -   `random(length: int | None) -> str` -- returns a random code of `length` length, uses a random number in `CAPTCHA_RANGE` length by default
-    -   `set_captcha(code: str) -> Self` -- sets the captcha to a code
-    -   `get_captcha() -> bytes | None` -- returns the current captcha digest if available
-    -   `verify_captcha(code: str) -> bool` -- returns if a code is a valid hash
-    -   `new(code: str | None, length: str | None, set_c: bool = True)` -- returns a new `CaptchaGenerator`, passes code as the code and uses `random(length)` by default, `set_captcha()` is called if `set_c` is `True`, which is the default
+    -   `set_code(code: str) -> Self` -- sets the captcha to a code
+    -   `get_digest() -> bytes | None` -- returns the current captcha digest if available
+    -   `verify(code: str | None, expire: bool = True) -> bool` -- returns if a code is a valid hash, if `code` is `None` will always return `False`, which helps to work with flask apis like `flask.request.from.get`, will also call `expire()` if `expire=True` ( default ) is passed
+    -   `new(code: str | None, length: str | None, set_c: bool = True)` -- returns a new `CaptchaGenerator`, passes code as the code and uses `random(length)` by default, `set_code()` is called if `set_c` is `True`, which is the default
+    -   `expire() -> Self` -- expire the current captcha
 -   `CaptchaGenerator` -- generate captchas
     -   `__init__(code: str, cimage: captcha.image.ImageCaptcha, caudio: captcha.audio.AudioCaptcha) -> None` -- constructor, takes in the captcha code and captcha helpers
         -   `code` is the captcha code
