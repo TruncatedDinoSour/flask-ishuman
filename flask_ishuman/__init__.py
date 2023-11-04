@@ -7,7 +7,6 @@ import string
 import typing as t
 import warnings
 from base64 import b64encode
-from dataclasses import dataclass
 from datetime import datetime
 from hashlib import sha3_512
 from logging import debug as debug_log
@@ -18,18 +17,25 @@ import captcha.audio
 import captcha.image
 from flask import Flask, session
 
-__version__: t.Final[str] = "2.0.1"
+__version__: t.Final[str] = "2.1.0"
 
 CHARSET: t.Final[str] = string.ascii_letters + string.digits + "@#%?"
 
 
-@dataclass
 class CaptchaGenerator:
     """captcha generator and renderer"""
 
-    code: str
-    cimage: captcha.image.ImageCaptcha
-    caudio: captcha.audio.AudioCaptcha
+    __slots__: t.Tuple[str, ...] = "code", "cimage", "caudio"
+
+    def __init__(
+        self,
+        code: str,
+        cimage: captcha.image.ImageCaptcha,
+        caudio: captcha.audio.AudioCaptcha,
+    ) -> None:
+        self.code: str = code
+        self.cimage: captcha.image.ImageCaptcha = cimage
+        self.caudio: captcha.audio.AudioCaptcha = caudio
 
     def rawpng(self) -> bytes:
         """return raw png"""
@@ -70,10 +76,10 @@ alt="{alt}" />'
 <source src="data:audio/wav;base64,{self.wav()}" type=audio/wav /> {alt} </audio>'
 
 
-@dataclass
 class IsHuman:
     """captcha support in flask"""
 
+    __slots__: t.Tuple[str, ...] = "cimage", "caudio", "rand", "skey", "app", "pepper"
     _c: int = 0
 
     def __init__(
